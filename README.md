@@ -69,3 +69,5 @@ Start the development server
 
 Bash
 npx expo start
+ # Images ![alt text](image.png) 
+ Image when the user finish to signup to the account
