@@ -1,25 +1,29 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-export const Header = () => (
-  <View style={styles.container}>
-    <View>
-      <Text style={styles.welcomeText}>Welcome back,</Text>
-      <View style={styles.locationRow}>
-        <Ionicons name="location" size={16} color="#6C63FF" />
-        <Text style={styles.locationText}>Delaware, USA</Text>
+export const Header = () => {
+  const router = useRouter();
+  
+  return (
+    <View style={styles.container}>
+      <View>
+        <Text style={styles.welcomeText}>Welcome back,</Text>
+        <View style={styles.locationRow}>
+          <Ionicons name="location" size={16} color="#6C63FF" />
+          <Text style={styles.locationText}>Delaware, USA</Text>
+        </View>
       </View>
+      <TouchableOpacity onPress={() => router.push('/profile')}>
+        <Image 
+          source={{ uri: 'https://i.pravatar.cc/150?u=grace' }} 
+          style={styles.profilePic} 
+        />
+      </TouchableOpacity>
     </View>
-    <TouchableOpacity>
-      {/* Updated to Online Image */}
-      <Image 
-        source={{ uri: 'https://i.pravatar.cc/150?u=grace' }} 
-        style={styles.profilePic} 
-      />
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
