@@ -4,9 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 const DATA = [
-  { id: '1', unread: true, title: 'You have an appointment at The Galleria Hair Salon at 8:00am today', time: 'Just now' },
-  { id: '2', unread: false, title: 'Your password is successfully changed', time: '2 hours ago' },
-  { id: '3', unread: false, title: 'Completed your profile to be better health consults.', link: 'Complete Profile', time: '3 days ago' },
+  { id: '1', unread: true, title: 'Your appointment at Bella Rinova is confirmed for Dec 15, 2024 at 2:00 PM', time: 'Just now', type: 'booking' },
+  { id: '2', unread: true, title: 'You have an appointment at The Galleria Hair Salon at 8:00am today', time: '2 hours ago', type: 'appointment' },
+  { id: '3', unread: false, title: 'Your password is successfully changed', time: '2 hours ago', type: 'security' },
+  { id: '4', unread: false, title: 'Completed your profile to be better health consults.', link: 'Complete Profile', time: '3 days ago', type: 'profile' },
 ];
 
 export default function NotificationsScreen() {
@@ -32,7 +33,16 @@ export default function NotificationsScreen() {
         data={DATA}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.notifItem}>
+          <TouchableOpacity 
+            style={styles.notifItem}
+            onPress={() => {
+              if (item.type === 'booking' || item.type === 'appointment') {
+                router.push('./messages');
+              } else if (item.type === 'profile') {
+                router.push('./profile-completion');
+              }
+            }}
+          >
             <View style={[styles.dot, { backgroundColor: item.unread ? '#6366F1' : '#D1D5DB' }]} />
             <View style={styles.textContent}>
               <Text style={styles.notifTitle}>
@@ -40,7 +50,7 @@ export default function NotificationsScreen() {
               </Text>
               <Text style={styles.notifTime}>{item.time}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>

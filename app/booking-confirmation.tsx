@@ -19,6 +19,16 @@ export default function BookingConfirmationScreen() {
     phone: '+1 (555) 123-4567'
   };
 
+  // Add booking notification when component mounts
+  React.useEffect(() => {
+    // Simulate adding notification to the system
+    console.log('New booking notification added:', {
+      type: 'booking',
+      message: `Your appointment at ${bookingDetails.salon} is confirmed for ${bookingDetails.date} at ${bookingDetails.time}`,
+      bookingId: bookingDetails.bookingId
+    });
+  }, []);
+
   const downloadPDF = async () => {
     try {
       // Simulate PDF generation and download
