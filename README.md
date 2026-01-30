@@ -73,3 +73,5 @@ npx expo start
  Image when the user finish to signup to the account
 
  Booking Image ![alt text](image-1.png)
+
+ profile image of user ![alt text](image-2.png)
