@@ -55,7 +55,7 @@ Installation
 Clone the repository
 
 Bash
-git clone https://github.com/yourusername/salon-ease.git
+git clone https://github.com/graceniyigena34/SalonEase-.git
 cd salon-ease
 Install dependencies
 
