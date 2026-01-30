@@ -195,7 +195,7 @@ export default function SalonDetailScreen() {
           <Ionicons name="call" size={20} color="#6366F1" />
           <Text style={styles.callButtonText}>Call</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bookButton} onPress={() => router.push('./Booking')}>
+        <TouchableOpacity style={styles.bookButton} onPress={() => router.push('./appointment')}>
           <Text style={styles.bookButtonText}>Book Appointment</Text>
         </TouchableOpacity>
       </View>
