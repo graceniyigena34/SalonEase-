@@ -102,7 +102,7 @@ export default function SalonListScreen() {
             <Text style={styles.callText}>Call</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.bookButton}>
+          <TouchableOpacity style={styles.bookButton} onPress={() => router.push('./Booking')}>
             <Text style={styles.bookText}>Book Now</Text>
           </TouchableOpacity>
         </View>
