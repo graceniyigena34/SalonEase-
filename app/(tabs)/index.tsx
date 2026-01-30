@@ -40,7 +40,7 @@ export default function HomeScreen() {
           {/* 4. Nearest Salon Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Nearest salon</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('./salon-list')}>
                <Text style={styles.viewAll}>View All</Text>
             </TouchableOpacity>
           </View>
