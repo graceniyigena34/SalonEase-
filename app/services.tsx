@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Image, FlatList } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Image, FlatList, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -172,10 +172,15 @@ const SERVICES = [
 export default function ServicesScreen() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
-  const filteredServices = selectedCategory === 'All' 
-    ? SERVICES 
-    : SERVICES.filter(service => service.category === selectedCategory);
+  const filteredServices = SERVICES.filter(service => {
+    const matchesCategory = selectedCategory === 'All' || service.category === selectedCategory;
+    const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         service.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const renderServiceCard = ({ item }) => (
     <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('./appointment')}>
@@ -219,10 +224,24 @@ export default function ServicesScreen() {
           <Ionicons name="arrow-back" size={24} color="#1A1D1E" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Services</Text>
-        <TouchableOpacity>
-          <Ionicons name="search-outline" size={24} color="#1A1D1E" />
+        <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
+          <Ionicons name={showSearch ? "close" : "search-outline"} size={24} color="#1A1D1E" />
         </TouchableOpacity>
       </View>
+
+      {/* Search Input */}
+      {showSearch && (
+        <View style={styles.searchContainer}>
+          <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search services..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+        </View>
+      )}
 
       {/* Category Filter */}
       <ScrollView 
@@ -273,6 +292,24 @@ const styles = StyleSheet.create({
     paddingVertical: 15
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1D1E' },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1A1D1E'
+  },
   categoryContainer: { paddingHorizontal: 20, paddingVertical: 15, gap: 12 },
   categoryButton: { 
     paddingHorizontal: 20, 
