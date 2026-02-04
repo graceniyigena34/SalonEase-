@@ -1,39 +1,83 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Calendar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-const SERVICES = [
-  { id: '1', name: 'Hair Cut', price: '$45', duration: '45 min' },
-  { id: '2', name: 'Hair Color', price: '$85', duration: '90 min' },
-  { id: '3', name: 'Makeup', price: '$65', duration: '60 min' },
-  { id: '4', name: 'Facial Treatment', price: '$120', duration: '75 min' }
-];
+import { api } from '../src/services/api';
+import { bookingService } from '../src/services/booking';
 
 const TIME_SLOTS = [
-  '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
-  '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
-  '5:00 PM', '6:00 PM', '7:00 PM'
+  '09:00', '10:00', '11:00', '12:00',
+  '13:00', '14:00', '15:00', '16:00',
+  '17:00', '18:00', '19:00'
 ];
 
 export default function AppointmentScreen() {
   const router = useRouter();
-  const [selectedService, setSelectedService] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedTime, setSelectedTime] = useState(null);
+  const { salonId } = useLocalSearchParams();
+  const [salon, setSalon] = useState<any>(null);
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
-  const handleBooking = () => {
-    if (selectedService && selectedDate && selectedTime) {
-      console.log('Booking confirmed:', { selectedService, selectedDate, selectedTime });
-      router.push('./booking-confirmation');
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!salonId) return;
+      try {
+        const salonData = await api.get<any>(`/salons/${salonId}`);
+        setSalon(salonData);
+
+        const servicesData = await api.get<any[]>(`/services?salon=${salonId}`);
+        setServices(servicesData);
+      } catch (error) {
+        console.error('Fetch appointment data error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [salonId]);
+
+  const handleBooking = async () => {
+    if (!selectedService || !selectedDate || !selectedTime) {
+      Alert.alert('Error', 'Please select a service and time');
+      return;
+    }
+
+    setBookingLoading(true);
+    try {
+      await bookingService.createBooking({
+        service: selectedService._id,
+        salon: salon._id,
+        date: selectedDate,
+        time: selectedTime,
+        notes: "Booking via mobile app"
+      });
+
+      router.push('/booking-confirmation');
+    } catch (error: any) {
+      Alert.alert('Booking Failed', error.message || 'Could not complete booking. Please try again.');
+    } finally {
+      setBookingLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -45,35 +89,39 @@ export default function AppointmentScreen() {
 
         {/* Salon Info */}
         <View style={styles.salonInfo}>
-          <Text style={styles.salonName}>Bella Rinova</Text>
-          <Text style={styles.salonAddress}>6391 Elgin St. Celina, Delaware</Text>
+          <Text style={styles.salonName}>{salon?.name || 'Salon'}</Text>
+          <Text style={styles.salonAddress}>{salon?.address || 'Address'}</Text>
         </View>
 
         {/* Service Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Service</Text>
-          {SERVICES.map((service) => (
-            <TouchableOpacity
-              key={service.id}
-              style={[
-                styles.serviceItem,
-                selectedService?.id === service.id && styles.selectedServiceItem
-              ]}
-              onPress={() => setSelectedService(service)}
-            >
-              <View style={styles.serviceInfo}>
-                <Text style={styles.serviceName}>{service.name}</Text>
-                <Text style={styles.serviceDuration}>{service.duration}</Text>
-              </View>
-              <Text style={styles.servicePrice}>{service.price}</Text>
-              {selectedService?.id === service.id && (
-                <Ionicons name="checkmark-circle" size={20} color="#6366F1" style={styles.checkIcon} />
-              )}
-            </TouchableOpacity>
-          ))}
+          {services.length === 0 ? (
+            <Text style={styles.emptyText}>No services available.</Text>
+          ) : (
+            services.map((service) => (
+              <TouchableOpacity
+                key={service._id}
+                style={[
+                  styles.serviceItem,
+                  selectedService?._id === service._id && styles.selectedServiceItem
+                ]}
+                onPress={() => setSelectedService(service)}
+              >
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceName}>{service.name}</Text>
+                  <Text style={styles.serviceDuration}>{service.duration} min</Text>
+                </View>
+                <Text style={styles.servicePrice}>${service.price}</Text>
+                {selectedService?._id === service._id && (
+                  <Ionicons name="checkmark-circle" size={20} color="#6366F1" style={styles.checkIcon} />
+                )}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
-        {/* Date Selection */}
+        {/* Date Selection (Simplified) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Date</Text>
           <View style={styles.dateContainer}>
@@ -118,7 +166,7 @@ export default function AppointmentScreen() {
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Duration:</Text>
-              <Text style={styles.summaryValue}>{selectedService.duration}</Text>
+              <Text style={styles.summaryValue}>{selectedService.duration} min</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Date:</Text>
@@ -130,7 +178,7 @@ export default function AppointmentScreen() {
             </View>
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalValue}>{selectedService.price}</Text>
+              <Text style={styles.totalValue}>${selectedService.price}</Text>
             </View>
           </View>
         )}
@@ -140,17 +188,21 @@ export default function AppointmentScreen() {
 
       {/* Bottom Book Button */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.bookButton,
-            (!selectedService || !selectedTime) && styles.disabledButton
+            (!selectedService || !selectedTime || bookingLoading) && styles.disabledButton
           ]}
           onPress={handleBooking}
-          disabled={!selectedService || !selectedTime}
+          disabled={!selectedService || !selectedTime || bookingLoading}
         >
-          <Text style={styles.bookButtonText}>
-            Book Appointment {selectedService ? selectedService.price : ''}
-          </Text>
+          {bookingLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.bookButtonText}>
+              Confirm Booking {selectedService ? `$${selectedService.price}` : ''}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -159,10 +211,11 @@ export default function AppointmentScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15
   },
@@ -172,10 +225,10 @@ const styles = StyleSheet.create({
   salonAddress: { fontSize: 14, color: '#6B7280', marginTop: 4 },
   section: { paddingHorizontal: 20, marginBottom: 30 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1D1E', marginBottom: 16 },
-  serviceItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
+  serviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -189,11 +242,12 @@ const styles = StyleSheet.create({
   serviceDuration: { fontSize: 14, color: '#6B7280', marginTop: 2 },
   servicePrice: { fontSize: 16, fontWeight: 'bold', color: '#059669' },
   checkIcon: { position: 'absolute', top: 8, right: 8 },
+  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 10 },
   dateContainer: { marginTop: 8 },
-  dateInput: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -201,8 +255,8 @@ const styles = StyleSheet.create({
   },
   dateText: { fontSize: 16, color: '#1A1D1E', marginLeft: 12 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  timeSlot: { 
-    paddingVertical: 12, 
+  timeSlot: {
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -213,10 +267,10 @@ const styles = StyleSheet.create({
   selectedTimeSlot: { borderColor: '#6366F1', backgroundColor: '#6366F1' },
   timeText: { fontSize: 14, color: '#1A1D1E', fontWeight: '500' },
   selectedTimeText: { color: '#FFFFFF' },
-  summary: { 
-    marginHorizontal: 20, 
-    padding: 20, 
-    backgroundColor: '#F9FAFB', 
+  summary: {
+    marginHorizontal: 20,
+    padding: 20,
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     marginBottom: 20
   },
@@ -227,17 +281,19 @@ const styles = StyleSheet.create({
   totalRow: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12, marginTop: 8 },
   totalLabel: { fontSize: 16, fontWeight: 'bold', color: '#1A1D1E' },
   totalValue: { fontSize: 16, fontWeight: 'bold', color: '#059669' },
-  bottomBar: { 
-    padding: 20, 
-    borderTopWidth: 1, 
-    borderTopColor: '#F3F4F6', 
+  bottomBar: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
     backgroundColor: '#FFFFFF'
   },
-  bookButton: { 
-    backgroundColor: '#6366F1', 
-    paddingVertical: 16, 
-    borderRadius: 12, 
-    alignItems: 'center' 
+  bookButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    height: 56,
+    justifyContent: 'center'
   },
   disabledButton: { backgroundColor: '#9CA3AF' },
   bookButtonText: { fontSize: 16, color: '#FFFFFF', fontWeight: '600' }

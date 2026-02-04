@@ -21,7 +21,6 @@ export default function TabLayout() {
         },
       }}>
       
-      {/* 1. Home (index.tsx) */}
       <Tabs.Screen
         name="index"
         options={{
@@ -31,7 +30,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 2. Explore (explore.tsx) */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -41,7 +39,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 3. Messages (messages.tsx) */}
       <Tabs.Screen
         name="messages"
         options={{
@@ -51,7 +48,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. Payment (payment.tsx) */}
       <Tabs.Screen
         name="Payment"
         options={{
@@ -61,7 +57,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 5. Booking */}
       <Tabs.Screen
         name="Booking"
         options={{
@@ -75,7 +70,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 6. Profile (profile.tsx) */}
       <Tabs.Screen
         name="profile"
         options={{

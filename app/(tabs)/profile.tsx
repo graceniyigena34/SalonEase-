@@ -4,7 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Specific Menu Item Component for this UI
+import { authService } from '../../src/services/auth';
+
+// Specific Menu Item Component
 const ProfileMenuItem = ({ icon, title, onPress }: { icon: any, title: string, onPress?: () => void }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.6}>
     <View style={styles.menuLeft}>
@@ -17,30 +19,50 @@ const ProfileMenuItem = ({ icon, title, onPress }: { icon: any, title: string, o
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [user, setUser] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const loadUser = async () => {
+      const userData = await authService.getUser();
+      if (userData) setUser(userData);
+    };
+    loadUser();
+  }, []);
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: () => router.replace('/') }
-    ]);
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log Out",
+          style: "destructive",
+          onPress: async () => {
+            await authService.logout();
+            router.replace('/');
+          }
+        }
+      ]
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        
+
         {/* Top Action Icons */}
         <View style={styles.topIcons}>
-          <TouchableOpacity 
-            style={styles.iconCircle} 
-            onPress={() => router.push('/Notification')} // Absolute Path
+          <TouchableOpacity
+            style={styles.iconCircle}
+            onPress={() => router.push('/Notification')}
           >
             <Ionicons name="notifications-outline" size={20} color="#1A1D1E" />
             <View style={styles.redDot} />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.iconCircle}
-            onPress={() => router.push('/favorite')} // Absolute Path
+            onPress={() => router.push('/favorite')}
           >
             <Ionicons name="heart-outline" size={20} color="#1A1D1E" />
           </TouchableOpacity>
@@ -48,62 +70,60 @@ export default function ProfileScreen() {
 
         {/* User Info Section */}
         <View style={styles.profileSection}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80' }} 
-            style={styles.avatar} 
+          <Image
+            source={{ uri: user?.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80' }}
+            style={styles.avatar}
           />
           <View style={styles.nameRow}>
-            <Text style={styles.userName}>Robert Fox</Text>
-            {/* FIXED: Absolute path for Edit Profile */}
+            <Text style={styles.userName}>{user?.name || 'Robert Fox'}</Text>
             <TouchableOpacity onPress={() => router.push('/Edit-profile')}>
               <Feather name="edit-3" size={16} color="#6366F1" style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.userEmail}>robert_fox@gmail.com</Text>
+          <Text style={styles.userEmail}>{user?.email || 'robert_fox@gmail.com'}</Text>
         </View>
 
-        {/* List Menu with full routing */}
+        {/* List Menu */}
         <View style={styles.menuList}>
-          <ProfileMenuItem 
-            icon="heart-outline" 
-            title="Favourite" 
-            onPress={() => router.push('/favorite')} 
+          <ProfileMenuItem
+            icon="heart-outline"
+            title="Favourite"
+            onPress={() => router.push('/favorite')}
           />
-          <ProfileMenuItem 
-            icon="credit-card-outline" 
-            title="Payment Methods" 
+          <ProfileMenuItem
+            icon="credit-card-outline"
+            title="Payment Methods"
             onPress={() => router.push('/payment/payment-methods')}
           />
-         {/* FIXED: Absolute path for History */}
-<ProfileMenuItem 
-  icon="history" 
-  title="Payment History" 
-  onPress={() => router.push('/payment/payment-history')}
-/>
-          <ProfileMenuItem 
-            icon="lock-outline" 
-            title="Change Password" 
-            onPress={() => router.push('/security')} 
+          <ProfileMenuItem
+            icon="history"
+            title="Payment History"
+            onPress={() => router.push('/payment/payment-history')}
           />
-          <ProfileMenuItem 
-            icon="account-group-outline" 
-            title="Invites Friends" 
+          <ProfileMenuItem
+            icon="lock-outline"
+            title="Change Password"
+            onPress={() => router.push('/security')}
+          />
+          <ProfileMenuItem
+            icon="account-group-outline"
+            title="Invites Friends"
             onPress={() => router.push('/invite-friends')}
           />
-          <ProfileMenuItem 
-            icon="chat-question-outline" 
-            title="FAQs" 
-            onPress={() => router.push('/faq')} 
+          <ProfileMenuItem
+            icon="chat-question-outline"
+            title="FAQs"
+            onPress={() => router.push('/faq')}
           />
-          <ProfileMenuItem 
-            icon="information-outline" 
-            title="About Us" 
+          <ProfileMenuItem
+            icon="information-outline"
+            title="About Us"
             onPress={() => router.push('/about')}
           />
-          <ProfileMenuItem 
-            icon="logout" 
-            title="Logout" 
-            onPress={handleLogout} 
+          <ProfileMenuItem
+            icon="logout"
+            title="Logout"
+            onPress={handleLogout}
           />
         </View>
 

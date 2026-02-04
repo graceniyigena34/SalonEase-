@@ -1,9 +1,69 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { authService } from "../src/services/auth";
 
 export default function SignupScreen() {
   const router = useRouter();
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const validateForm = () => {
+    if (!formData.fullName.trim()) {
+      Alert.alert('Error', 'Please enter your full name');
+      return false;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email');
+      return false;
+    }
+
+    // Strong password criteria
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      Alert.alert(
+        'Weak Password',
+        'Password must be at least 8 characters long and include: \n• One uppercase letter\n• One lowercase letter\n• One number\n• One special character (@, $, !, %, etc.)'
+      );
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSignup = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const response = await authService.register({
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: 'customer'
+      });
+
+      Alert.alert('Success', response.message || 'Account created successfully!');
+      router.push({
+        pathname: "/otp-code",
+        params: { email: formData.email }
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -16,21 +76,58 @@ export default function SignupScreen() {
 
       <View style={styles.inputBox}>
         <Ionicons name="person-outline" size={20} color="#999" />
-        <TextInput placeholder="Full Name" placeholderTextColor="#999" style={styles.input} />
+        <TextInput
+          placeholder="Full Name"
+          placeholderTextColor="#999"
+          style={styles.input}
+          value={formData.fullName}
+          onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+        />
       </View>
 
       <View style={styles.inputBox}>
         <Ionicons name="mail-outline" size={20} color="#999" />
-        <TextInput placeholder="Email" placeholderTextColor="#999" style={styles.input} />
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor="#999"
+          style={styles.input}
+          value={formData.email}
+          onChangeText={(text) => setFormData({ ...formData, email: text })}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
       </View>
 
       <View style={styles.inputBox}>
         <Ionicons name="lock-closed-outline" size={20} color="#999" />
-        <TextInput placeholder="Password" placeholderTextColor="#999" secureTextEntry style={styles.input} />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#999"
+          secureTextEntry
+          style={styles.input}
+          value={formData.password}
+          onChangeText={(text) => setFormData({ ...formData, password: text })}
+        />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push("/verify-phone")}>
-        <Text style={styles.buttonText}>Sign up</Text>
+      <View style={styles.inputBox}>
+        <Ionicons name="lock-closed-outline" size={20} color="#999" />
+        <TextInput
+          placeholder="Confirm Password"
+          placeholderTextColor="#999"
+          secureTextEntry
+          style={styles.input}
+          value={formData.confirmPassword}
+          onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleSignup}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{loading ? 'Creating Account...' : 'Sign up'}</Text>
       </TouchableOpacity>
 
       <View style={styles.loginContainer}>
@@ -51,6 +148,7 @@ const styles = StyleSheet.create({
   inputBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 },
   input: { marginLeft: 10, fontSize: 14, flex: 1, color: "#1A1A1A" },
   button: { backgroundColor: "#6C63FF", paddingVertical: 16, borderRadius: 16, alignItems: "center", marginBottom: 20 },
+  buttonDisabled: { backgroundColor: "#A0A0A0" },
   buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   loginContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { fontSize: 13, color: "#A0A0A0" },

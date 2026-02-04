@@ -1,9 +1,36 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { useRouter } from "expo-router"; // Import the router
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { authService } from "../src/services/auth";
 
 export default function LoginScreen() {
-  const router = useRouter(); // Initialize the router
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authService.login({ email, password });
+
+      if (response.user?.role === 'owner') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -23,6 +50,10 @@ export default function LoginScreen() {
           placeholder="Email"
           placeholderTextColor="#999"
           style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
       </View>
 
@@ -34,6 +65,8 @@ export default function LoginScreen() {
           placeholderTextColor="#999"
           secureTextEntry
           style={styles.input}
+          value={password}
+          onChangeText={setPassword}
         />
       </View>
 
@@ -44,11 +77,14 @@ export default function LoginScreen() {
       </View>
 
       {/* Sign In Button - Links to Home Tabs */}
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={() => router.replace("/(tabs)")}
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleLogin}
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Sign in</Text>
+        <Text style={styles.buttonText}>
+          {loading ? 'Signing in...' : 'Sign in'}
+        </Text>
       </TouchableOpacity>
 
       {/* Divider */}
@@ -71,7 +107,7 @@ export default function LoginScreen() {
       <TouchableOpacity onPress={() => router.push("/forgot-password")}>
         <Text style={styles.footer}>Forgot your password?</Text>
       </TouchableOpacity>
-      
+
       <View style={styles.signupContainer}>
         <Text style={styles.footerText}>Don’t have an account? </Text>
         <TouchableOpacity onPress={() => router.push("/signup")}>
@@ -136,11 +172,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
+  buttonDisabled: {
+    backgroundColor: "#A0A0A0",
+  },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
+
   orText: {
     textAlign: "center",
     color: "#999",

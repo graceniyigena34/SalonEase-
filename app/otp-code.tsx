@@ -1,17 +1,68 @@
-import React, { useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { authService } from '../src/services/auth';
 
 export default function OtpCodeScreen() {
   const router = useRouter();
-  
+  const { email } = useLocalSearchParams<{ email: string }>();
+  const [otp, setOtp] = useState(['', '', '', '']);
+  const [loading, setLoading] = useState(false);
+
   // Refs to automatically move focus to the next box
   const pin1Ref = useRef<TextInput>(null);
   const pin2Ref = useRef<TextInput>(null);
   const pin3Ref = useRef<TextInput>(null);
   const pin4Ref = useRef<TextInput>(null);
+
+  const handleOtpChange = (text: string, index: number) => {
+    const newOtp = [...otp];
+    newOtp[index] = text;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (text && index < 3) {
+      const nextRef = [pin2Ref, pin3Ref, pin4Ref][index];
+      nextRef.current?.focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const otpCode = otp.join('');
+    if (otpCode.length !== 4) {
+      Alert.alert('Error', 'Please enter complete OTP code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const verifyEmail = email || '';
+      if (!verifyEmail) {
+        throw new Error('Verification email missing. Please try signing up again.');
+      }
+
+      const response = await authService.verifyOtp(verifyEmail, otpCode);
+
+      Alert.alert('Success', 'Email verified successfully!');
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Invalid OTP code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) return;
+    try {
+      await authService.sendEmailOtp(email);
+      Alert.alert('Success', 'A new OTP code has been sent to your email.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to resend OTP');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -20,9 +71,10 @@ export default function OtpCodeScreen() {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Verify phone</Text>
+        <Text style={styles.title}>Verify email</Text>
         <Text style={styles.subtitle}>
-          Please enter the 4 digit security code we just sent you at <Text style={styles.phoneNum}>713-444-xxxx</Text>
+          Please enter the 4 digit security code we just sent to your Gmail address:{"\n"}
+          <Text style={styles.emailText}>{email || 'your email'}</Text>
         </Text>
 
         <View style={styles.otpRow}>
@@ -31,43 +83,45 @@ export default function OtpCodeScreen() {
             style={styles.otpInput}
             keyboardType="number-pad"
             maxLength={1}
-            onChangeText={(text) => text && pin2Ref.current?.focus()}
+            value={otp[0]}
+            onChangeText={(text) => handleOtpChange(text, 0)}
           />
           <TextInput
             ref={pin2Ref}
             style={styles.otpInput}
             keyboardType="number-pad"
             maxLength={1}
-            onChangeText={(text) => text && pin3Ref.current?.focus()}
+            value={otp[1]}
+            onChangeText={(text) => handleOtpChange(text, 1)}
           />
           <TextInput
             ref={pin3Ref}
             style={styles.otpInput}
             keyboardType="number-pad"
             maxLength={1}
-            onChangeText={(text) => text && pin4Ref.current?.focus()}
+            value={otp[2]}
+            onChangeText={(text) => handleOtpChange(text, 2)}
           />
           <TextInput
             ref={pin4Ref}
             style={styles.otpInput}
             keyboardType="number-pad"
             maxLength={1}
-            onChangeText={(text) => {
-                if (text.length === 1){
-                    // Navigate to forgot password flow after OTP verification
-                    setTimeout(() => router.push("/forgot-password"), 500);
-                }
-            }}
+            value={otp[3]}
+            onChangeText={(text) => handleOtpChange(text, 3)}
           />
         </View>
 
-        <Text style={styles.resendText}>Resend in <Text style={styles.timer}>48 Sec</Text></Text>
+        <TouchableOpacity onPress={handleResend}>
+          <Text style={styles.resendText}>Didn't receive a code? <Text style={styles.timer}>Resend</Text></Text>
+        </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => router.push("/forgot-password")}
+        <TouchableOpacity
+          style={[styles.button, loading && { backgroundColor: '#A0A0A0' }]}
+          onPress={handleVerify}
+          disabled={loading}
         >
-          <Text style={styles.buttonText}>Verify</Text>
+          <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -80,13 +134,13 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, alignItems: 'center' },
   title: { fontSize: 28, fontWeight: '700', color: '#1A1A1A', marginBottom: 12 },
   subtitle: { textAlign: 'center', color: '#A0A0A0', lineHeight: 22, marginBottom: 40 },
-  phoneNum: { color: '#6C63FF', fontWeight: '600' },
-  otpRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    width: '100%', 
+  emailText: { color: '#6C63FF', fontWeight: '600' },
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
     paddingHorizontal: 20,
-    marginBottom: 40 
+    marginBottom: 40
   },
   otpInput: {
     width: 60,
@@ -102,11 +156,11 @@ const styles = StyleSheet.create({
   },
   resendText: { color: '#A0A0A0', fontSize: 14, marginBottom: 40 },
   timer: { color: '#6C63FF', fontWeight: '600' },
-  button: { 
-    backgroundColor: '#6C63FF', 
-    width: '100%', 
-    padding: 18, 
-    borderRadius: 16, 
+  button: {
+    backgroundColor: '#6C63FF',
+    width: '100%',
+    padding: 18,
+    borderRadius: 16,
     alignItems: 'center',
     shadowColor: '#6C63FF',
     shadowOffset: { width: 0, height: 4 },
